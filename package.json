@@ -1,0 +1,26 @@
+{
+  "name": "zomato-orders",
+  "version": "1.0.0",
+  "description": "Zomato Restaurant Orders Pagination API built with Node.js, Express and MySQL",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "seed": "node createdatabase.js"
+  },
+  "keywords": [
+    "nodejs",
+    "express",
+    "mysql",
+    "mysql2",
+    "pagination",
+    "rest-api",
+    "zomato"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "mysql2": "^3.9.7"
+  }
+}
