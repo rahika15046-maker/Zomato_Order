@@ -1,7 +1,9 @@
 /**
  * Database Initialization & Seed Script
- * Creates the database (if not exists), recreates the `orders` table,
+ * Connects to MySQL, ensures the `orders` table exists,
  * and populates the required 12 sample restaurant order records in exact insertion order.
+ * 
+ * Supports local MySQL as well as cloud MySQL providers (e.g. Railway).
  * 
  * Usage: node createdatabase.js
  */
@@ -48,23 +50,23 @@ const sampleOrders = [
     },
     { 
         _id: "c8d5c1c3-15e8-4112-a043-a0d33a8de28d", 
-        title: "Daily Chef Mini Candy Cookies", 
-        description: "Delicious mini candy cookies baked fresh in Club." 
+        title: "Gaston's Bakery Small Croissants", 
+        description: "Our vendor will ship directly to you. Allow 5-7 business days for delivery. Not available to ship to Hawaii or Alaska. $7.50 handling and shipping fee applied in cart to ensure freshness." 
     },
     { 
-        _id: "74835a8d-b17b-4653-b1b1-fc58b4df19b9", 
-        title: "So Delicious Cultured Coconut Milk Yogurt Vanilla Dairy & Soy Free Organic", 
-        description: "So Delicious® Dairy Free Coconut Milk Yogurt Alternative Vanilla. Made with organic coconut. Net Wt. 5.3 oz (150 g). Certified Vegan. Certified Gluten-Free®." 
+        _id: "7217db53-fa9b-449e-b816-724d2719c298", 
+        title: "Cento San Marzano Organic Peeled Tomatoes", 
+        description: "Cento Certified Organic San Marzano Peeled Tomatoes. Certified organic by Bioagricert SRL. Net wt 28 oz (1 lb 12 oz) 794g." 
     },
     { 
-        _id: "92de4c84-2f09-43c3-88e2-c0a000b93037", 
-        title: "Gaston’s Bakery Small Puff Pastry Squares", 
-        description: "Easily create delicious pies, savory hors d’oeuvres, tarts, baklava and more with these ready-to-use puff pastry squares. Puff pastry bakes up light and flaky and pairs perfectly with a wide range of toppings and fillings." 
+        _id: "364585a2-c3da-47e0-b6f7-a9a7a63d4104", 
+        title: "Suave Professionals Deep Moisture Shampoo", 
+        description: "Suave Professionals Moisture Rich Shampoo for dry hair is made with a replenishing formula infused with panthenol and a keratin complex to help strengthen hair. This moisture shampoo gently cleanses and helps improve the look and feel of dry hair by delivering 2x more moisture* *vs non conditioning shampoo. For best results, pair this moisturizing shampoo with Suave Professionals Deep Moisture Conditioner." 
     },
     { 
-        _id: "df52c530-a741-4eb7-9558-d2faaacec380", 
-        title: "Signature Bakery Assortment", 
-        description: "Our Signature Bakery Assortment is ideal when you need a cookie delivery. This bakery gift is filled with baked goods such as lemon poppyseed coffee cake and baklava handcrafted in our own bakery. We've added some of our most popular cookie types, from raspberry galettes to Moose Munch® Cookies, to round out this generous collection." 
+        _id: "72691be0-80e4-4d2a-a921-1311ff04d98d", 
+        title: "S&W Kidney Beans Dark Red", 
+        description: "Dark Red Kidney Beans, canned dark red kidney beans." 
     },
     { 
         _id: "334d5358-3cdf-473b-b894-5115b0df7c6f", 
@@ -74,38 +76,54 @@ const sampleOrders = [
 ];
 
 async function initializeDatabase() {
-    const dbName = process.env.DB_NAME || 'zomato_orders';
-    const host = process.env.DB_HOST || 'localhost';
-    const user = process.env.DB_USER || 'root';
-    const password = process.env.DB_PASSWORD || '';
-    const port = process.env.DB_PORT ? parseInt(process.env.DB_PORT, 10) : 3306;
+    const connectionUri = process.env.DATABASE_URL || process.env.MYSQL_URL;
+    const dbName = process.env.DB_NAME || process.env.MYSQLDATABASE || 'zomato_orders';
+    const host = process.env.DB_HOST || process.env.MYSQLHOST || 'localhost';
+    const user = process.env.DB_USER || process.env.MYSQLUSER || 'root';
+    const password = process.env.DB_PASSWORD !== undefined
+        ? process.env.DB_PASSWORD
+        : (process.env.MYSQLPASSWORD !== undefined ? process.env.MYSQLPASSWORD : '');
+    const port = process.env.DB_PORT
+        ? parseInt(process.env.DB_PORT, 10)
+        : (process.env.MYSQLPORT ? parseInt(process.env.MYSQLPORT, 10) : 3306);
 
-    console.log(`[INFO] Connecting to MySQL server at ${host}:${port}...`);
+    console.log(`[INFO] Initializing database target: ${connectionUri ? 'via connection URL' : `${host}:${port}/${dbName}`}...`);
 
     let connection;
     try {
-        // Step 1: Connect to server without database selected to ensure DB exists
-        connection = await mysql.createConnection({
-            host,
-            user,
-            password,
-            port
-        });
+        if (connectionUri) {
+            connection = await mysql.createConnection(connectionUri);
+        } else {
+            // Attempt to connect to the specific database directly first
+            try {
+                connection = await mysql.createConnection({
+                    host,
+                    user,
+                    password,
+                    port,
+                    database: dbName
+                });
+            } catch (initialErr) {
+                // If database does not exist, connect to server without database and create it
+                if (initialErr.code === 'ER_BAD_DB_ERROR') {
+                    console.log(`[INFO] Database \`${dbName}\` does not exist yet. Connecting to MySQL server to create it...`);
+                    const rootConn = await mysql.createConnection({ host, user, password, port });
+                    await rootConn.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\`;`);
+                    await rootConn.end();
+                    console.log(`[INFO] Database \`${dbName}\` created.`);
+                    connection = await mysql.createConnection({ host, user, password, port, database: dbName });
+                } else {
+                    throw initialErr;
+                }
+            }
+        }
 
-        console.log(`[INFO] Connected to MySQL server successfully.`);
+        console.log(`[INFO] Connected to target database successfully.`);
 
-        // Step 2: Create database if it does not exist
-        await connection.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\`;`);
-        console.log(`[INFO] Database \`${dbName}\` ensured.`);
-
-        // Step 3: Switch to target database
-        await connection.changeUser({ database: dbName });
-
-        // Step 4: Drop existing orders table if it exists
+        // Recreate orders table matching assignment schema
         await connection.query('DROP TABLE IF EXISTS `orders`;');
         console.log(`[INFO] Existing \`orders\` table dropped.`);
 
-        // Step 5: Recreate orders table schema EXACTLY matching original assignment
         await connection.query(`
             CREATE TABLE \`orders\` (
                 \`_id\` VARCHAR(200),
@@ -115,7 +133,7 @@ async function initializeDatabase() {
         `);
         console.log(`[INFO] Schema created: \`orders(_id, title, description)\`.`);
 
-        // Step 6: Populate sample records in order
+        // Seed 12 sample records in exact order
         for (let i = 0; i < sampleOrders.length; i++) {
             await connection.query(
                 'INSERT INTO `orders` (`_id`, `title`, `description`) VALUES (?, ?, ?)',
@@ -124,7 +142,7 @@ async function initializeDatabase() {
         }
         console.log(`[SUCCESS] Seeded ${sampleOrders.length} records into \`orders\` table in exact order.`);
 
-        // Step 7: Verify row count
+        // Verify count
         const [rows] = await connection.query('SELECT COUNT(*) AS count FROM `orders`');
         console.log(`[VERIFY] Total rows in \`orders\` table: ${rows[0].count}`);
 

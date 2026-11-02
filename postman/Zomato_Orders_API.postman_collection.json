@@ -1,0 +1,177 @@
+{
+  "info": {
+    "_postman_id": "c85d8924-4f81-4b16-bb91-03915bc674d2",
+    "name": "Zomato Orders Pagination API",
+    "description": "Comprehensive Postman test collection for Zomato Orders pagination endpoints with MySQL.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Default Pagination (limit=10, offset=0)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/orders",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "orders"]
+        },
+        "description": "Tests default limit (10) and offset (0). Returns first 10 records."
+      }
+    },
+    {
+      "name": "2. Custom Pagination (limit=4, offset=1)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/orders?limit=4&offset=1",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "orders"],
+          "query": [
+            { "key": "limit", "value": "4" },
+            { "key": "offset", "value": "1" }
+          ]
+        },
+        "description": "Skips 1st record, returns next 4 records."
+      }
+    },
+    {
+      "name": "3. Omitted Offset (limit=5)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/orders?limit=5",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "orders"],
+          "query": [
+            { "key": "limit", "value": "5" }
+          ]
+        },
+        "description": "Returns first 5 records (offset defaults to 0)."
+      }
+    },
+    {
+      "name": "4. Omitted Limit (offset=3)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/orders?offset=3",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "orders"],
+          "query": [
+            { "key": "offset", "value": "3" }
+          ]
+        },
+        "description": "Skips 3 records, returns remaining records up to default limit 10."
+      }
+    },
+    {
+      "name": "5. Invalid String Limit (limit=abc&offset=2)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/orders?limit=abc&offset=2",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "orders"],
+          "query": [
+            { "key": "limit", "value": "abc" },
+            { "key": "offset", "value": "2" }
+          ]
+        },
+        "description": "Invalid string parameter triggers fallback of BOTH parameters to defaults (10, 0)."
+      }
+    },
+    {
+      "name": "6. Invalid Float Limit (limit=2.5&offset=1)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/orders?limit=2.5&offset=1",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "orders"],
+          "query": [
+            { "key": "limit", "value": "2.5" },
+            { "key": "offset", "value": "1" }
+          ]
+        },
+        "description": "Invalid float parameter triggers fallback of BOTH parameters to defaults (10, 0)."
+      }
+    },
+    {
+      "name": "7. Invalid Negative Limit (limit=-5&offset=2)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/orders?limit=-5&offset=2",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "orders"],
+          "query": [
+            { "key": "limit", "value": "-5" },
+            { "key": "offset", "value": "2" }
+          ]
+        },
+        "description": "Negative parameter triggers fallback of BOTH parameters to defaults (10, 0)."
+      }
+    },
+    {
+      "name": "8. Invalid Zero Limit (limit=0&offset=1)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/orders?limit=0&offset=1",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "orders"],
+          "query": [
+            { "key": "limit", "value": "0" },
+            { "key": "offset", "value": "1" }
+          ]
+        },
+        "description": "Zero limit is invalid (must be positive > 0). Triggers fallback of BOTH to defaults (10, 0)."
+      }
+    },
+    {
+      "name": "9. Valid Zero Offset (limit=4&offset=0)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/orders?limit=4&offset=0",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "orders"],
+          "query": [
+            { "key": "limit", "value": "4" },
+            { "key": "offset", "value": "0" }
+          ]
+        },
+        "description": "Zero is a valid non-negative offset. Returns first 4 records."
+      }
+    },
+    {
+      "name": "10. Health Check Probe",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["health"]
+        },
+        "description": "Cloud health probe for monitoring service status."
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    }
+  ]
+}

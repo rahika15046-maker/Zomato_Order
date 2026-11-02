@@ -44,6 +44,8 @@ zomato-orders/
 │   └── app.js                    # Express application setup
 ├── server.js                     # HTTP server entrypoint
 ├── createdatabase.js             # Database setup and seed utility
+├── postman/
+│   └── Zomato_Orders_API.postman_collection.json # Postman test collection
 ├── .env.example                  # Environment configuration template
 ├── .gitignore
 ├── package.json
