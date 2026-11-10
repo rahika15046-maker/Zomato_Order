@@ -1,13 +1,20 @@
 /**
  * Database Configuration & Connection Pool
  * Uses mysql2/promise for performant, non-blocking asynchronous MySQL operations.
- * Supports standard DB_* variables, Railway MySQL variables (MYSQL*), and connection URLs.
+ * Supports standard DB_* variables, TiDB Cloud, Railway, and generic MySQL providers.
  */
 
 require('dotenv').config();
 const mysql = require('mysql2/promise');
 
 const connectionUri = process.env.DATABASE_URL || process.env.MYSQL_URL;
+
+// Determine if SSL is required (TiDB Cloud, AWS RDS, or explicit DB_SSL flag)
+const isCloudDatabase = (
+    process.env.DB_SSL === 'true' ||
+    (process.env.DB_HOST && process.env.DB_HOST.includes('tidbcloud.com')) ||
+    (process.env.DB_HOST && process.env.DB_HOST !== 'localhost' && process.env.DB_HOST !== '127.0.0.1')
+);
 
 const poolConfig = connectionUri
     ? connectionUri
@@ -25,7 +32,8 @@ const poolConfig = connectionUri
         connectionLimit: 10,
         queueLimit: 0,
         enableKeepAlive: true,
-        keepAliveInitialDelay: 0
+        keepAliveInitialDelay: 0,
+        ...(isCloudDatabase ? { ssl: { minVersion: 'TLSv1.2', rejectUnauthorized: true } } : {})
     };
 
 const pool = mysql.createPool(poolConfig);
